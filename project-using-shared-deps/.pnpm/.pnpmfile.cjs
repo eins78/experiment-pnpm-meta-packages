@@ -6,7 +6,7 @@ function getExternalDependencies(packageName, packageVersion) {
   // otherwise, we need to prefix it with the package name (e.g. "@my/shared-deps@1")
   const packageSpec = packageVersion.includes(":") ? packageVersion : `${packageName}@${packageVersion}`;
   try {
-    const result = execSync(`npm view '${packageSpec}' dependencies --json`);
+    const result = execSync(`pnpm view '${packageSpec}' dependencies --json`);
     return JSON.parse(result.toString());
   } catch (err) {
     console.error(`\n\n\nFATAL: Could not read shared dependencies from ${packageSpec}!\n\n\n`, err.message);
