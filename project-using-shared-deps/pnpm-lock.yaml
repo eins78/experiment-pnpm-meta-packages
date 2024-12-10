@@ -4,6 +4,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+pnpmfileChecksum: 4ayebieb7dlkjzp4rvrdlgcsla
+
 importers:
 
   .:
@@ -11,6 +13,12 @@ importers:
       '@my/shared-deps':
         specifier: file:../my-shared-deps
         version: file:../my-shared-deps
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
 
 packages:
 
