@@ -5,6 +5,9 @@
   "scripts": {
     "test": "node test.js"
   },
+  "sharedDependencyPackages": [
+    "@my/shared-deps"
+  ],
   "dependencies": {
     "@my/shared-deps": "file:../my-shared-deps"
   },

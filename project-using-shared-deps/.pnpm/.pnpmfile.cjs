@@ -1,9 +1,5 @@
-// config
-const SHARED_DEPS_PACKAGE_NAME = "@my/shared-deps";
-// end of config
-
 const { execSync } = require("node:child_process");
-console.log("✨ installing dependencies from SHARED_DEPS_PACKAGE_NAME", SHARED_DEPS_PACKAGE_NAME);
+const SHARED_DEPS_PACKAGE_PROP = "sharedDependencyPackages";
 
 function getExternalDependencies(packageName, packageVersion) {
   // if the package version has a ":", character, it's full specifier and we can use it as is (e.g. "file:../shared-deps")
@@ -13,26 +9,39 @@ function getExternalDependencies(packageName, packageVersion) {
     const result = execSync(`npm view '${packageSpec}' dependencies --json`);
     return JSON.parse(result.toString());
   } catch (err) {
-    console.error(
-      `\n\n\nFATAL: Could not read shared dependencies from SHARED_DEPS_PACKAGE_NAME ${SHARED_DEPS_PACKAGE_NAME}!\n\n\n`,
-      err.message
-    );
+    console.error(`\n\n\nFATAL: Could not read shared dependencies from ${packageSpec}!\n\n\n`, err.message);
     process.exit(1);
   }
 }
 
-function readPackage(pkg) {
-  // Only modify packages that depend on the shared package
-  const sharedPackageVersion = pkg.dependencies && pkg.dependencies[SHARED_DEPS_PACKAGE_NAME];
-  if (!sharedPackageVersion) {
+function readPackage(pkg, context) {
+  // Only modify packages that have a SHARED_DEPS_PACKAGE_PROP property and depend on one of the shared dependencies.
+  const sharedDependencyPackages = pkg[SHARED_DEPS_PACKAGE_PROP];
+
+  if (
+    !Array.isArray(sharedDependencyPackages) ||
+    !sharedDependencyPackages.length ||
+    !Object.keys(pkg.dependencies || {}).some((dep) => sharedDependencyPackages.includes(dep))
+  ) {
     return pkg;
   }
 
-  const sharedDeps = getExternalDependencies(SHARED_DEPS_PACKAGE_NAME, sharedPackageVersion);
+  let sharedDeps = {};
+  sharedDependencyPackages.forEach((sharedDepPkg) => {
+    const sharedPackageVersion = pkg.dependencies && pkg.dependencies[sharedDepPkg];
+    if (!sharedPackageVersion) {
+      return;
+    }
 
-  // Merge the dependencies from shared package.
-  // Dont remove the shared package from the dependencies, so it turns up when asking e.g. "pnpm why react".
-  // it wont take up any space because pnpm uses symlinks.
+    context.log(
+      `✨ installing dependencies from shared dependency package: ${sharedDepPkg} version ${sharedPackageVersion}`
+    );
+    sharedDeps = { ...sharedDeps, ...getExternalDependencies(sharedDepPkg, sharedPackageVersion) };
+  });
+
+  // Merge the dependencies from shared packages.
+  // Dont remove the shared packages themselfes from the dependencies, so it turns up when asking e.g. "pnpm why react".
+  // They and their dependencies wont take up any space, because pnpm uses symlinks.
   pkg.dependencies = {
     ...sharedDeps,
     ...pkg.dependencies,
